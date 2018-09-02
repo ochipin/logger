@@ -35,6 +35,7 @@ type Log struct {
 type Logger interface {
 	Print(...interface{})
 	Printf(string, ...interface{})
+	Write([]byte) (int, error)
 }
 
 // Initializer : ログ管理構造体にセットされたパラメータが適切かチェックし、パラメータを初期化する
@@ -67,7 +68,6 @@ func (l *Log) Initializer(out *os.File) error {
 	if l.Perm == 0 {
 		l.Perm = 0644
 	}
-	l.out = out
 
 	return nil
 }
@@ -93,6 +93,19 @@ func (l *Log) Printf(format string, v ...interface{}) {
 	if err := l.output(fmt.Sprintf(format, v...)); err != nil {
 		l.alert("logger: " + err.Error())
 	}
+}
+
+// Write : ログを出力する
+func (l *Log) Write(b []byte) (int, error) {
+	var out []byte = b
+	if l := len(b); l != 0 && b[l-1] == '\n' {
+		out = b[:l-1]
+	}
+	if err := l.output(string(out)); err != nil {
+		l.alert("logger: " + err.Error())
+		return 0, err
+	}
+	return len(b), nil
 }
 
 // シスログへ出力する
