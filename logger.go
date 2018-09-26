@@ -68,6 +68,7 @@ func (l *Log) Initializer(out *os.File) error {
 	if l.Perm == 0 {
 		l.Perm = 0644
 	}
+	l.out = out
 
 	return nil
 }
@@ -77,7 +78,6 @@ func (l *Log) MakeLog(out *os.File) (Logger, error) {
 	if err := l.Initializer(out); err != nil {
 		return nil, err
 	}
-	l.out = out
 	return l, nil
 }
 
