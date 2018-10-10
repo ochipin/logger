@@ -3,6 +3,7 @@ package errorlog
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -16,9 +17,11 @@ var matchSource = regexp.MustCompile(`%[fml]`)
 // Log 構造体は、ログ情報を取り扱う構造体
 type Log struct {
 	logger.Log
-	Format string // ログフォーマット
-	Level  int    // ログレベル
-	Depth  int    // 実行された関数、行番号等を取得する際に使用する階層
+	Format  string // ログフォーマット
+	Level   int    // ログレベル
+	Depth   int    // 実行された関数、行番号等を取得する際に使用する階層
+	Binname string // ロードモジュール名
+	pid     string // プロセスID
 }
 
 // Logger : ログ管理インタフェース
@@ -50,6 +53,12 @@ func (l *Log) MakeLog(out *os.File) (Logger, error) {
 	if l.Depth == 0 {
 		l.Depth = 1
 	}
+	// Binname が空文字列の場合、起動されているロードモジュール名をセットする
+	if l.Binname == "" {
+		_, l.Binname = filepath.Split(os.Args[0])
+	}
+	// プロセスIDをセットする
+	l.pid = fmt.Sprint(os.Getpid())
 	if err := l.Initializer(out); err != nil {
 		return nil, err
 	}
@@ -123,6 +132,8 @@ func (l *Log) message(level int) (string, error) {
 	rep := strings.NewReplacer(
 		"%D", now.Format("2006-01-02"),
 		"%T", now.Format("15:04:05"),
+		"%p", l.pid,
+		"%b", l.Binname,
 		"%L", levelname)
 	// 2018-03-21 21:22:02 main.go(main:11) error: a.out not found...
 	return rep.Replace(result), nil

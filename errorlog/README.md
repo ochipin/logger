@@ -10,7 +10,7 @@ import "os"
 
 func main() {
     log := &errorlog.Log{}
-    log.Format = "%D %T %f(%m:%l) %L: %M"
+    log.Format = "%D %T %b[%p]: %f(%m:%l) %L: %M"
     log.Depth = 3
     log.Level = 7
 
@@ -22,8 +22,8 @@ func main() {
     // ログ情報の出力
     l.Debug("Hello World")
     l.Debugf("%s %d", "Hello World", 200)
-    // YYYY-MM-DD HH:MI:SS main.go(main:24) debug: Hello World
-    // YYYY-MM-DD HH:MI:SS main.go(main:25) debug: Hello World 200 
+    // YYYY-MM-DD HH:MI:SS app[1234]: main.go(main:24) debug: Hello World
+    // YYYY-MM-DD HH:MI:SS app[1234]: main.go(main:25) debug: Hello World 200 
 }
 ```
 
@@ -51,6 +51,7 @@ logger ライブラリに加え、以下のパラメータを追加している�
 | Format | ログフォーマット指定子                           |
 | Level  | ログレベル        |
 | Depth  | ソースコード情報を取得する階層 |
+| Binname| アプリケーション名。無指定の場合は、os.Args[0]のファイル名の部分のみが格納される。|
 
 ログフォーマット指定子を設定する`Format`は、下記指定子を利用可能。
 
@@ -63,6 +64,8 @@ logger ライブラリに加え、以下のパラメータを追加している�
 | %m | エラーログ出力関数がコールされた場所(関数名)  |
 | %l | エラーログ出力関数がコールされた場所(行番号) |
 | %M | エラーログ出力関数に渡したメッセージ内容 |
+| %b | アプリケーション名 |
+| %p | プロセスID |
 
 ## logger.Log.MakeLog()
 上で述べた、Loggerインターフェースを生成する関数。
