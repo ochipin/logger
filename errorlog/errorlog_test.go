@@ -29,4 +29,10 @@ func TestErrorLog(t *testing.T) {
 	l.Infof("%s %d", "Hello World", 200)
 	l.Debug("Hello World")
 	l.Debugf("%s %d", "Hello World", 200)
+	l.Output(3, 3, "Hello World %d", 200)
+
+	depth := l.GetDepth()
+	if depth != 3 {
+		t.Fatal("logger error")
+	}
 }

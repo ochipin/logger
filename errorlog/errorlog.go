@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ochipin/logger"
@@ -16,6 +17,7 @@ var matchSource = regexp.MustCompile(`%[fml]`)
 
 // Log 構造体は、ログ情報を取り扱う構造体
 type Log struct {
+	mu sync.Mutex
 	logger.Log
 	Format  string // ログフォーマット
 	Level   int    // ログレベル
@@ -42,6 +44,9 @@ type Logger interface {
 	Infof(string, ...interface{})
 	Debug(...interface{})
 	Debugf(string, ...interface{})
+	Output(int, int, string, ...interface{})
+	GetDepth() int
+	SetDepth(int)
 }
 
 // MakeLog : ログ管理構造体を初期化する
@@ -139,8 +144,20 @@ func (l *Log) message(level int) (string, error) {
 	return rep.Replace(result), nil
 }
 
+// GetDepth : Depth 値を取得する
+func (l *Log) GetDepth() int { return l.Depth }
+
+// SetDepth : Depth 値を設定する
+func (l *Log) SetDepth(depth int) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.Depth = depth
+}
+
 // Emerg : ログレベル0。呼び出されるとリターンコード127でプログラムを強制終了する
 func (l *Log) Emerg(v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	mes, _ := l.message(0)
 	l.Print(strings.Replace(mes, "%M", fmt.Sprint(v...), -1))
 	os.Exit(127)
@@ -148,6 +165,8 @@ func (l *Log) Emerg(v ...interface{}) {
 
 // Emergf : ログレベル0。呼び出されるとリターンコード127でプログラムを強制終了する
 func (l *Log) Emergf(format string, v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	mes, _ := l.message(0)
 	l.Print(strings.Replace(mes, "%M", fmt.Sprintf(format, v...), -1))
 	os.Exit(127)
@@ -155,6 +174,8 @@ func (l *Log) Emergf(format string, v ...interface{}) {
 
 // Alert : ログレベル1。緊急でかつ重大なエラーに使用する
 func (l *Log) Alert(v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if mes, err := l.message(1); err == nil {
 		l.Print(strings.Replace(mes, "%M", fmt.Sprint(v...), -1))
 	}
@@ -162,6 +183,8 @@ func (l *Log) Alert(v ...interface{}) {
 
 // Alertf : ログレベル1。緊急でかつ重大なエラーに使用する
 func (l *Log) Alertf(format string, v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if mes, err := l.message(1); err == nil {
 		l.Print(strings.Replace(mes, "%M", fmt.Sprintf(format, v...), -1))
 	}
@@ -169,6 +192,8 @@ func (l *Log) Alertf(format string, v ...interface{}) {
 
 // Crit : ログレベル2。重大エラーに使用する
 func (l *Log) Crit(v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if mes, err := l.message(2); err == nil {
 		l.Print(strings.Replace(mes, "%M", fmt.Sprint(v...), -1))
 	}
@@ -176,6 +201,8 @@ func (l *Log) Crit(v ...interface{}) {
 
 // Critf : ログレベル2。重大エラーに使用する
 func (l *Log) Critf(format string, v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if mes, err := l.message(2); err == nil {
 		l.Print(strings.Replace(mes, "%M", fmt.Sprintf(format, v...), -1))
 	}
@@ -183,6 +210,8 @@ func (l *Log) Critf(format string, v ...interface{}) {
 
 // Error : ログレベル3。エラー発生時に使用する
 func (l *Log) Error(v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if mes, err := l.message(3); err == nil {
 		l.Print(strings.Replace(mes, "%M", fmt.Sprint(v...), -1))
 	}
@@ -190,6 +219,8 @@ func (l *Log) Error(v ...interface{}) {
 
 // Errorf : ログレベル3。エラー発生時に使用する
 func (l *Log) Errorf(format string, v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if mes, err := l.message(3); err == nil {
 		l.Print(strings.Replace(mes, "%M", fmt.Sprintf(format, v...), -1))
 	}
@@ -197,6 +228,8 @@ func (l *Log) Errorf(format string, v ...interface{}) {
 
 // Warn : ログレベル4。警告メッセージ
 func (l *Log) Warn(v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if mes, err := l.message(4); err == nil {
 		l.Print(strings.Replace(mes, "%M", fmt.Sprint(v...), -1))
 	}
@@ -204,6 +237,8 @@ func (l *Log) Warn(v ...interface{}) {
 
 // Warnf : ログレベル4。警告メッセージ
 func (l *Log) Warnf(format string, v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if mes, err := l.message(4); err == nil {
 		l.Print(strings.Replace(mes, "%M", fmt.Sprintf(format, v...), -1))
 	}
@@ -211,6 +246,8 @@ func (l *Log) Warnf(format string, v ...interface{}) {
 
 // Notice : ログレベル5。通知メッセージ
 func (l *Log) Notice(v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if mes, err := l.message(5); err == nil {
 		l.Print(strings.Replace(mes, "%M", fmt.Sprint(v...), -1))
 	}
@@ -218,6 +255,8 @@ func (l *Log) Notice(v ...interface{}) {
 
 // Noticef : ログレベル5。通知メッセージ
 func (l *Log) Noticef(format string, v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if mes, err := l.message(5); err == nil {
 		l.Print(strings.Replace(mes, "%M", fmt.Sprintf(format, v...), -1))
 	}
@@ -225,6 +264,8 @@ func (l *Log) Noticef(format string, v ...interface{}) {
 
 // Info : ログレベル6。通常メッセージ
 func (l *Log) Info(v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if mes, err := l.message(6); err == nil {
 		l.Print(strings.Replace(mes, "%M", fmt.Sprint(v...), -1))
 	}
@@ -232,6 +273,8 @@ func (l *Log) Info(v ...interface{}) {
 
 // Infof : ログレベル6。通常メッセージ
 func (l *Log) Infof(format string, v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if mes, err := l.message(6); err == nil {
 		l.Print(strings.Replace(mes, "%M", fmt.Sprintf(format, v...), -1))
 	}
@@ -239,6 +282,8 @@ func (l *Log) Infof(format string, v ...interface{}) {
 
 // Debug : ログレベル7。デバッグメッセージ
 func (l *Log) Debug(v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if mes, err := l.message(7); err == nil {
 		l.Print(strings.Replace(mes, "%M", fmt.Sprint(v...), -1))
 	}
@@ -246,7 +291,21 @@ func (l *Log) Debug(v ...interface{}) {
 
 // Debugf : ログレベル7。デバッグメッセージ
 func (l *Log) Debugf(format string, v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if mes, err := l.message(7); err == nil {
 		l.Print(strings.Replace(mes, "%M", fmt.Sprintf(format, v...), -1))
 	}
+}
+
+// Output : ログレベル, 階層値, フォーマット, 出力エラー値などを指定するエラー関数
+func (l *Log) Output(level, depth int, format string, v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	oldDepth := l.Depth
+	l.Depth = depth
+	if mes, err := l.message(level); err == nil {
+		l.Print(strings.Replace(mes, "%M", fmt.Sprintf(format, v...), -1))
+	}
+	l.Depth = oldDepth
 }
