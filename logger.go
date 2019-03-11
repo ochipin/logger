@@ -35,6 +35,7 @@ type Log struct {
 type Logger interface {
 	Print(...interface{})
 	Printf(string, ...interface{})
+	Println(...interface{})
 	Write([]byte) (int, error)
 }
 
@@ -91,6 +92,13 @@ func (l *Log) Print(v ...interface{}) {
 // Printf : ログを出力する
 func (l *Log) Printf(format string, v ...interface{}) {
 	if err := l.output(fmt.Sprintf(format, v...)); err != nil {
+		l.alert("logger: " + err.Error())
+	}
+}
+
+// Println : ログを出力する
+func (l *Log) Println(v ...interface{}) {
+	if err := l.output(fmt.Sprint(v...)); err != nil {
 		l.alert("logger: " + err.Error())
 	}
 }
