@@ -45,6 +45,7 @@ type Logger interface {
 	Debug(...interface{})
 	Debugf(string, ...interface{})
 	Output(int, int, string, ...interface{})
+	OutputForPC(int, string, string, int, string, ...interface{})
 	GetDepth() int
 	SetDepth(int)
 }
@@ -124,6 +125,39 @@ func (l *Log) message(level int) (string, error) {
 	// %f, %l, %m 等のフォーマットが存在する場合、関数名、ファイル名、行番号等を取得し埋め込む
 	if matchSource.MatchString(l.Format) {
 		filename, funcname, linenum := l.source()
+		rep := strings.NewReplacer(
+			"%f", filename,
+			"%m", funcname,
+			"%l", fmt.Sprint(linenum))
+		// ex) %D %T main.go(main:11) %M
+		result = rep.Replace(l.Format)
+	}
+
+	// %D, %T を日時に置き換え、%Mを出力するメッセージに置き換える
+	now := time.Now()
+	rep := strings.NewReplacer(
+		"%D", now.Format("2006-01-02"),
+		"%T", now.Format("15:04:05"),
+		"%p", l.pid,
+		"%b", l.Binname,
+		"%L", levelname)
+	// 2018-03-21 21:22:02 main.go(main:11) error: a.out not found...
+	return rep.Replace(result), nil
+}
+
+// 出力するメッセージフォーマットに沿った形式に変換するが、filename, funcname, line は呼び出し側で指定しなければならない
+func (l *Log) messageForPC(level int, filename, funcname string, linenum int) (string, error) {
+	// 返却する値をフォーマット文字列で初期化 ex) %D %T %f(%m:%l) %M
+	var result = l.Format
+
+	// ログレベルを取得する
+	levelname, err := l.logLevel(level)
+	if err != nil {
+		return "", err
+	}
+
+	// %f, %l, %m 等のフォーマットが存在する場合、関数名、ファイル名、行番号等を埋め込む
+	if matchSource.MatchString(l.Format) {
 		rep := strings.NewReplacer(
 			"%f", filename,
 			"%m", funcname,
@@ -308,4 +342,13 @@ func (l *Log) Output(level, depth int, format string, v ...interface{}) {
 		l.Print(strings.Replace(mes, "%M", fmt.Sprintf(format, v...), -1))
 	}
 	l.Depth = oldDepth
+}
+
+// OutputForPC : ログレベル, フォーマット, 関数名、ファイル名、行番号、出力エラー値などを指定するエラー関数
+func (l *Log) OutputForPC(level int, filename, funcname string, line int, format string, v ...interface{}) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if mes, err := l.messageForPC(level, filename, funcname, line); err == nil {
+		l.Print(strings.Replace(mes, "%M", fmt.Sprintf(format, v...), -1))
+	}
 }
